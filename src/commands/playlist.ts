@@ -33,7 +33,7 @@ export const Playlist = CreateCommand(
             embeds: [
                 new EmbedBuilder()
                     .setColor(Colors.Blue)
-                    .setTitle(`Next ${Math.min(songs.length, 10)} song${songs.length > 1? "s":""} to play`)
+                    .setTitle(`Next ${songs.length > 1? Math.min(songs.length, 10) : ""} song${songs.length > 1? "s":""} to play`)
                     .setDescription(embedDescription)
             ]
         });

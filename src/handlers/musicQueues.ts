@@ -2,6 +2,7 @@ import search from "youtube-search";
 import { GetSpotifyClientID, GetSpotifyClientSecret, GetYoutubeKey } from "../config";
 import { User } from "discord.js";
 import SpotifyWebApi from "spotify-web-api-node";
+import puppeteer, { Browser } from 'puppeteer';
 
 export class Song {
     url: string;
@@ -20,6 +21,7 @@ export class Song {
 }
 
 const queues: { [guildId: string]: Song[] } = {}
+let browser: Browser | null = null;
 
 /**
  * Returns the music queue for the given guild.
@@ -77,18 +79,36 @@ export function Flush(guildId: string) {
  * @param query 
  */
 export async function Enqueue(guildId: string, query: string, user: User) {
-    const results = await search(query, {
-        key: GetYoutubeKey(),
-        maxResults: 1
-    });
+    if (!browser) {
+        browser = await puppeteer.launch();
+    }
 
-    const result = results.results[0];
+    const page = await browser.newPage();
+
+    await page.goto(`https://www.youtube.com/results?search_query=${encodeURI(query)}`);
+
+    await page.setViewport({width: 1080, height: 1024});
+
+    const textSelector = await page
+        .locator("a#video-title")
+        .waitHandle();
+    const title = await textSelector?.evaluate(el => el.title);
+    const fullLink = await textSelector?.evaluate(el => el.href);
+    const link = fullLink.substring(0, fullLink.search("&list"));
+
+    const thumbnailSelector = await page
+        .locator("a#thumbnail yt-image img")
+        .waitHandle();
+    const img = await thumbnailSelector?.evaluate(el => el.src);
+
+    page.close();
+
     const song = new Song(
-        result.link,
-        result.title,
+        link,
+        title,
         user.displayName,
         user.avatarURL() ?? user.defaultAvatarURL,
-        result.thumbnails.medium?.url ?? null
+        img
     );
 
     GetMusicQueue(guildId).push(song);

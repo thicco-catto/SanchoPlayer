@@ -2,7 +2,6 @@ import search from "youtube-search";
 import { GetSpotifyClientID, GetSpotifyClientSecret, GetYoutubeKey } from "../config";
 import { User } from "discord.js";
 import SpotifyWebApi from "spotify-web-api-node";
-import SpotifyToYoutube from 'spotify-to-youtube';
 
 export class Song {
     url: string;
@@ -97,7 +96,7 @@ export async function Enqueue(guildId: string, query: string, user: User) {
     return song;
 }
 
-export async function EnqueueSpotify(guildId: string, spotifyUrl: string, user: User) {
+export async function EnqueueSpotify(guildId: string, spotifyUrl: string, user: User, shuffle: boolean) {
     const spotifyApi = new SpotifyWebApi({
         clientId: GetSpotifyClientID(),
         clientSecret: GetSpotifyClientSecret()
@@ -107,11 +106,14 @@ export async function EnqueueSpotify(guildId: string, spotifyUrl: string, user: 
     spotifyApi.setAccessToken(credsResponse.body['access_token']);
 
     spotifyUrl = spotifyUrl.replace("https://open.spotify.com/playlist/", "").split("?")[0];
-    console.log(spotifyUrl);
-    const response = await spotifyApi.getPlaylistTracks("37i9dQZF1DX3KVUsNUmJc2");
+    const response = await spotifyApi.getPlaylistTracks(spotifyUrl);
 
     let song: Song | undefined;
-    const tracks = response.body.items;
+    let tracks = response.body.items;
+    if (shuffle) {
+        tracks = ShuffleArray(tracks);
+    }
+    
     let addedSongs = 0;
     for (let i = 0; i < tracks.length; i++) {
         const track = tracks[i].track;
@@ -131,3 +133,22 @@ export async function EnqueueSpotify(guildId: string, spotifyUrl: string, user: 
         addedSongs: addedSongs
     };
 }
+
+
+function ShuffleArray<T>(array: T[]): T[] {
+    let currentIndex = array.length,  randomIndex;
+
+    // While there remain elements to shuffle.
+    while (currentIndex != 0) {
+  
+      // Pick a remaining element.
+      randomIndex = Math.floor(Math.random() * currentIndex);
+      currentIndex--;
+  
+      // And swap it with the current element.
+      [array[currentIndex], array[randomIndex]] = [
+        array[randomIndex], array[currentIndex]];
+    }
+  
+    return array;
+};

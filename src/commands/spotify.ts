@@ -16,6 +16,11 @@ export const Spotify = CreateCommand(
             .setRequired(true)
             .setName("url")
             .setDescription("URL to the spotify playlist")
+        )
+        .addBooleanOption(option => option
+            .setRequired(false)
+            .setName("shuffle")
+            .setDescription("Whether to randomize playlist order. Defaults to not shuffling.")
         ),
     async (interaction: CommandInteraction) => {
         const canBeUsed = await CanVoiceCommandBeUsed(interaction);
@@ -23,6 +28,7 @@ export const Spotify = CreateCommand(
 
         const guild = interaction.guild!;
         const spotifyUrl = interaction.options.get("url", true).value as string;
+        const shuffle = (interaction.options.get("shuffle")?.value as boolean | undefined) ?? false;
 
         let connInfo = GetVoiceConnection(guild.id);
 
@@ -33,7 +39,7 @@ export const Spotify = CreateCommand(
 
         interaction.deferReply();
 
-        const {song, totalSongs, addedSongs} = await EnqueueSpotify(guild.id, spotifyUrl, interaction.user);
+        const {song, totalSongs, addedSongs} = await EnqueueSpotify(guild.id, spotifyUrl, interaction.user, shuffle);
 
         if (!song) {
             SmartReply(interaction, {
